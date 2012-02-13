@@ -1,0 +1,8 @@
+*~
+*.lock
+*.swp
+target
+.idea
+*.iml
+nbproject
+out
