@@ -17,3 +17,8 @@ I haven't documented the XML structure of each page.
 You can usually figure this out by doing a diff between revisions in the page history, but I know it's a pain.
 I'll document it eventually, but if there's a particular namespace that you'd like me to document sooner
 rather than later, please let me know.
+
+Other projects
+--------------
+
+Check out [other genealogy projects](https://github.com/DallanQ)

@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import nu.xom.ParsingException;
 import nu.xom.Element;
@@ -70,88 +71,97 @@ public class Places extends WikiParser
 
    // keep in sync with places standardizer.properties
    private Set<String> TYPE_WORDS = new HashSet<String>(Arrays.asList(
-			  "amt",
-			  "amtsgericht",
-			  "area",
-			  "arrondissement",
-			  "authority",
-			  "bantustan",
-			  "barangays",
-			  "bezirk",
-			  "borough",
-			  "buurtschap",
-			  "canton",
-			  "capital",
-			  "cemetery",
-			  "city",
-			  "civil",
-			  "comarca",
-			  "commune",
-			  "community",
-			  "concelho",
-			  "constituency",
-			  "county",
-			  "departement",
-			  "department",
-			  "diocese",
-			  "district",
-			  "division",
-			  "duchy",
-			  "federal",
-			  "freguesia",
-			  "gehucht",
-			  "gemeente",
-			  "gerichtsbezirk",
-			  "governorate",
-			  "grafschaft",
-			  "hameau",
-			  "hundred",
-			  "independent",
-			  "kanton",
-			  "kerulet",
-			  "kreis",
-			  "landkreis",
-			  "marke",
-			  "metropolitan",
-			  "municipal",
-			  "municipality",
-			  "national",
-			  "oblast",
-			  "okres",
-			  "parish",
-			  "partido ",
-			  "perfecture",
-			  "periphery",
-			  "powiat",
-			  "prefecture",
-			  "presbytery",
-			  "principal",
-			  "principality",
-			  "province",
-			  "provincie",
-			  "raion",
-			  "rayon",
-			  "regency",
-			  "regierungsbezirk",
-			  "region",
-			  "regional",
-			  "rione",
-			  "sahar",
-			  "stad",
-			  "state",
-			  "statutarstadt",
-			  "stift",
-			  "subprefecture",
-			  "synod",
-			  "territory",
-			  "town",
-			  "townland",
-			  "township",
-			  "unitary",
-			  "uyezd",
-			  "village",
-			  "voivodship"
-	));
+           "amt",
+           "amtsgericht",
+           "area",
+           "arrondissement",
+           "authority",
+           "bantustan",
+           "barangays",
+           "bezirk",
+           "borough",
+           "buurtschap",
+           "canton",
+           "capital",
+           "cemetery",
+           "city",
+           "civil",
+           "comarca",
+           "commune",
+           "community",
+           "concelho",
+           "constituency",
+           "county",
+           "departement",
+           "department",
+           "diocese",
+           "district",
+           "division",
+           "duchy",
+           "federal",
+           "freguesia",
+           "gehucht",
+           "gemeente",
+           "gerichtsbezirk",
+           "governorate",
+           "grafschaft",
+           "hameau",
+           "hundred",
+           "independent",
+           "kanton",
+           "kerulet",
+           "kreis",
+           "landkreis",
+           "marke",
+           "metropolitan",
+           "municipal",
+           "municipality",
+           "national",
+           "oblast",
+           "okres",
+           "parish",
+           "partido ",
+           "perfecture",
+           "periphery",
+           "powiat",
+           "prefecture",
+           "presbytery",
+           "principal",
+           "principality",
+           "province",
+           "provincie",
+           "raion",
+           "rayon",
+           "regency",
+           "regierungsbezirk",
+           "region",
+           "regional",
+           "rione",
+           "sahar",
+           "stad",
+           "state",
+           "statutarstadt",
+           "stift",
+           "subprefecture",
+           "synod",
+           "territory",
+           "town",
+           "townland",
+           "township",
+           "unitary",
+           "uyezd",
+           "village",
+           "voivodship"
+   ));
+
+   // {{wikipedia-notice|wikipedia page name}}
+   private static final Pattern WIKIPEDIA_PATTERN = Pattern.compile("\\{\\{wikipedia-notice\\|(.+?)\\}\\}", Pattern.CASE_INSENSITIVE);
+   // {{moreinfo wikipedia|wikipedia page name}}
+   private static final Pattern WIKIPEDIA2_PATTERN = Pattern.compile("\\{\\{moreinfo wikipedia\\|(.+?)\\}\\}", Pattern.CASE_INSENSITIVE);
+   // {{source-getty|id}}
+   private static final Pattern GETTY_PATTERN = Pattern.compile("\\{\\{source-getty\\|(.+?)\\}\\}", Pattern.CASE_INSENSITIVE);
+   // {{source-fhlc|id}}
+   private static final Pattern FHLC_PATTERN = Pattern.compile("\\{\\{source-fhlc\\|(.+?)\\}\\}", Pattern.CASE_INSENSITIVE);
 
    private static class Place {
       String name;
@@ -161,6 +171,7 @@ public class Places extends WikiParser
       List<String> alsoLocatedIns;
       String latitude;
       String longitude;
+      List<String> sources;
 
       Place() {
          name = "";
@@ -170,6 +181,7 @@ public class Places extends WikiParser
          alsoLocatedIns = new ArrayList<String>();
          latitude = "";
          longitude = "";
+         sources = new ArrayList<String>();
       }
    }
 
@@ -177,6 +189,40 @@ public class Places extends WikiParser
       placeMap = new TreeMap<Integer,Place>();
       titleMap = new HashMap<String, Integer>();
       redirectMap = new HashMap<String,String>();
+   }
+
+   private static String noTilde(String place) {
+      return place.replace("~"," ");
+   }
+
+   private static String noColon(String place) {
+      return place.replace(":"," ");
+   }
+
+   private static String noLink(String source) {
+      if (source.startsWith("[[") && source.endsWith("]]")) {
+         source = source.substring(2, source.length()-2);
+         int pos = source.indexOf('|');
+         if (pos > 0) {
+            source = source.substring(pos+1);
+         }
+         else {
+            pos = source.indexOf(':');
+            if (pos > 0) {
+               source = source.substring(pos+1);
+            }
+         }
+      }
+      return source;
+   }
+
+   private static boolean addSource(Pattern p, String label, String text, List<String> sources) {
+      Matcher m = p.matcher(text);
+      if (m.find()) {
+         sources.add(label+":"+m.group(1));
+         return true;
+      }
+      return false;
    }
 
    public void parse(String title, String text, int pageId, int latestRevId, String username, String timestamp, String comment) throws IOException, ParsingException
@@ -194,6 +240,7 @@ public class Places extends WikiParser
          else {
             String[] split = splitStructuredWikiText("place", text);
             String structuredData = split[0];
+            String unstructuredData = split[1];
             if (!Util.isEmpty(structuredData)) {
                Place p = new Place();
                Element root = parseText(structuredData).getRootElement();
@@ -216,8 +263,12 @@ public class Places extends WikiParser
                for (int i = 0; i < elms.size(); i++) {
                   elm = elms.get(i);
                   String name = elm.getAttributeValue("name");
+                  String source = elm.getAttributeValue("source");
                   if (name != null && name.length() > 0) {
-                     p.altNames.add(name);
+                     if (source != null && source.length() > 0) {
+                        name = noColon(name)+":"+noLink(source);
+                     }
+                     p.altNames.add(noTilde(name));
                   }
                }
 
@@ -229,7 +280,7 @@ public class Places extends WikiParser
                      for (String type : types.split(",")) {
                         type = type.trim();
                         if (type.length() > 0) {
-                           p.types.add(type);
+                           p.types.add(noTilde(type));
                         }
                      }
                   }
@@ -249,6 +300,14 @@ public class Places extends WikiParser
                p.latitude = getLatLon(root.getFirstChildElement("latitude"), true);
                p.longitude = getLatLon(root.getFirstChildElement("longitude"), false);
 
+               // add sources
+               if (!addSource(WIKIPEDIA_PATTERN, "wikipedia", unstructuredData, p.sources)) {
+                  addSource(WIKIPEDIA2_PATTERN, "wikipedia", unstructuredData, p.sources);
+               }
+               addSource(GETTY_PATTERN, "getty", unstructuredData, p.sources);
+               addSource(FHLC_PATTERN, "fhlc", unstructuredData, p.sources);
+
+               // add to maps
                placeMap.put(pageId, p);
                titleMap.put(title, pageId);
             }
@@ -263,7 +322,7 @@ public class Places extends WikiParser
             try {
                double d = Double.parseDouble(ll);
                if ((isLat && d >= -90.0 && d <= 90.0) ||
-                   (!isLat && d >= -180.0 && d <= 180.0)) {
+                       (!isLat && d >= -180.0 && d <= 180.0)) {
                   return ll; // must be a valid double
                }
             }
@@ -332,6 +391,10 @@ public class Places extends WikiParser
             logger.severe("Primary name token not found for: "+p.name+", "+p.locatedIn);
          }
          for (String altName : p.altNames) {
+            int pos = altName.indexOf(':');
+            if (pos >= 0) {
+               altName = altName.substring(0,pos);
+            }
             addName(id, altName, map);
          }
       }
@@ -360,7 +423,7 @@ public class Places extends WikiParser
       return placeMap;
    }
 
-   private static String nobar(String s) {
+   private static String noBar(String s) {
       if (s == null) return "";
       return s.replace("|", "");
    }
@@ -425,8 +488,8 @@ public class Places extends WikiParser
             }
          }
 
-         String altNames = nobar(Util.join(",", p.altNames));
-         if (altNames.length() > 1024) {
+         String altNames = Util.join("~", p.altNames);
+         if (altNames.length() > 4096) {
             logger.severe("Alt names too long: "+altNames+"="+altNames.length());
             altNames = "";
          }
@@ -445,15 +508,16 @@ public class Places extends WikiParser
 
          StringBuilder buf = new StringBuilder();
          buf.append(placeId);
-         append(buf, nobar(p.name));
-         append(buf, altNames);
-         append(buf, nobar(Util.join(",", p.types)));
+         append(buf, noBar(p.name));
+         append(buf, noBar(altNames));
+         append(buf, noBar(Util.join("~", p.types)));
          append(buf, Integer.toString(locatedInId));
-         append(buf, Util.join(",",aliIds));
+         append(buf, Util.join("~",aliIds));
          append(buf, Integer.toString(level));
          append(buf, Integer.toString(countryId));
          append(buf, p.latitude);
          append(buf, p.longitude);
+         append(buf, noBar(Util.join("~", p.sources)));
          out.println(buf.toString());
       }
       out.close();

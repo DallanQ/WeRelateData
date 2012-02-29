@@ -33,12 +33,11 @@ import org.folg.werelatedata.parser.WikiReader;
  * User: dallan
  * Date: 2/12/12
  */
-public class People extends WikiParser
-{
+public class People extends WikiParser {
    private PrintWriter out = null;
 
-   public void parse(String title, String text, int pageId, int latestRevId, String username, String timestamp, String comment) throws IOException, ParsingException
-   {
+   public void parse(String title, String text, int pageId, int latestRevId, String username, String timestamp, String comment)
+           throws IOException, ParsingException {
       if (title.startsWith("Person:")) {
          title = title.substring("Person:".length());
          String[] split = splitStructuredWikiText("person", text);
