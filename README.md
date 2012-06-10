@@ -18,6 +18,14 @@ You can usually figure this out by doing a diff between revisions in the page hi
 I'll document it eventually, but if there's a particular namespace that you'd like me to document sooner
 rather than later, please let me know.
 
+Writing bots to update pages on WeRelate
+----------------------------------------
+
+If you want to write a bot to update pages on WeRelate, take a look at `AddFhlcIdToPlaces` or `DeletePages` for examples.
+Once you've written the script and have tested it on a few pages, logging in with your username and password,
+submit a pull request so I can take a look at your script.  If it looks good, I'll give you a "bot" account that you
+can use for mass updates.
+
 Other projects
 --------------
 
