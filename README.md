@@ -4,7 +4,7 @@ Steps
 -----
 
 1. Download this project.  Make sure you have java and maven.
-2. Download the latest data dump from [here](public.werelate.org/pages.xml.gz).
+2. Download the latest data dump from [here](http://public.werelate.org/pages.xml.gz).
 3. Look at the examples in src/main/java/org/folg/werelatedata/examples.
 4. Extend one of the examples or add your own.
 5. Build using maven: `mvn install`
